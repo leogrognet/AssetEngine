@@ -5,7 +5,9 @@
         BinaryWriter.h
         BinaryReader.h
         FileIO.h
-        ArchiveFormat.h)
+        ArchiveFormat.h
+        ArchiveWriter.cpp
+        ArchiveWriter.h)
 
 target_include_directories(AssetEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(AssetEngine PUBLIC cxx_std_20)

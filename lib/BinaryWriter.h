@@ -55,9 +55,23 @@ public:
   void WriteValue(double value)            { WriteDouble(value); }
   void WriteValue(std::string_view string)  { WriteString(string); }
 
-  [[nodiscard]] std::span<const std::byte> getBuffer() const { return m_buffer; }
+  void WriteBytes(std::span<const std::byte> bytes);
+
+  [[nodiscard]] std::vector<std::byte> Build() const { return m_buffer; }
+
+  [[nodiscard]] std::span<const std::byte> GetBuffer() const { return m_buffer; }
+
+  [[nodiscard]] std::vector<std::byte> TakeBuffer()
+  {
+    return std::move(m_buffer);
+  }
 
 private:
   std::vector<std::byte> m_buffer;
 
 };
+
+inline void BinaryWriter::WriteBytes(std::span<const std::byte> bytes)
+{
+    m_buffer.insert(m_buffer.end(), bytes.begin(), bytes.end());
+}
