@@ -31,3 +31,13 @@
 *.exe
 *.out
 *.app
+
+# IDE
+.idea/
+.vs/
+*.iml
+
+# Build
+build/
+cmake-build-*/
+out/
