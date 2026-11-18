@@ -4,6 +4,7 @@
 
 #include "ArchiveFormat.h"
 #include "BinaryWriter.h"
+#include "FileIO.h"
 
 
 bool ArchiveWriter::HasAsset(uint32_t id) const
@@ -13,8 +14,8 @@ bool ArchiveWriter::HasAsset(uint32_t id) const
 
 void ArchiveWriter::AddAsset(uint32_t id, uint32_t type, std::vector<std::byte> data)
 {
-    if (assets.contains(id))
-        throw std::invalid_argument("Duplicate asset ID");
+   if (HasAsset(id))
+        throw std::invalid_argument("Asset ID already exists");
 
     assets[id] = {id, type, std::move(data)};
 }
@@ -33,7 +34,7 @@ bool ArchiveWriter::RemoveAsset(uint32_t id)
 
 void ArchiveWriter::ReplaceAsset(uint32_t id, uint32_t type, std::span<const std::byte> data)
 {
-    if (!assets.contains(id))
+    if (!HasAsset(id))
         throw std::invalid_argument("Asset ID not found");
 
     assets[id] = {id, type, std::vector<std::byte>(data.begin(), data.end())};
@@ -67,4 +68,9 @@ std::vector<std::byte> ArchiveWriter::Build() const
 
 
     return writer.TakeBuffer();
+}
+
+void ArchiveWriter::Save(const std::string &path) const
+{
+    SaveFile(path, Build());
 }

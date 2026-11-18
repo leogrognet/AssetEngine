@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <map>
 #include <span>
+#include <string>
 
 struct Asset
 {
@@ -27,6 +28,8 @@ public:
     void ReplaceAsset(uint32_t id, uint32_t type, std::span<const std::byte> data);
 
     [[nodiscard]] std::vector<std::byte> Build() const;
+
+    void Save(const std::string& path) const;
 
 private:
     std::map<uint32_t, Asset> assets;

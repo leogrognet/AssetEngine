@@ -7,7 +7,9 @@
         FileIO.h
         ArchiveFormat.h
         ArchiveWriter.cpp
-        ArchiveWriter.h)
+        ArchiveWriter.h
+        ArchiveReader.cpp
+        ArchiveReader.h)
 
 target_include_directories(AssetEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(AssetEngine PUBLIC cxx_std_20)
