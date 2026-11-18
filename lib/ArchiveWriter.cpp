@@ -51,7 +51,7 @@ std::vector<std::byte> ArchiveWriter::Build() const
     writer.WriteInt<uint32_t>(static_cast<uint32_t>(assets.size()));
     writer.WriteInt<uint64_t>(HEADER_SIZE);
 
-    uint32_t offset = HEADER_SIZE + assets.size() * ENTRY_SIZE;
+    uint64_t offset = HEADER_SIZE + assets.size() * ENTRY_SIZE;
     for (const auto& [id, asset] : assets)
     {
         writer.WriteInt<uint32_t>(id);
