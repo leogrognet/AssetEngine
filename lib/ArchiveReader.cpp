@@ -3,6 +3,7 @@
 #include "ArchiveFormat.h"
 #include "BinaryReader.h"
 #include "FileIO.h"
+#include "CRC32.h"
 
 bool ArchiveReader::HasAsset(uint32_t id) const
 {
@@ -20,10 +21,23 @@ std::span<const std::byte> ArchiveReader::GetAssetData(uint32_t id) const
 }
 
 
-void ArchiveReader::Load(const std::string &path)
+void ArchiveReader::Load(const std::string& path)
 {
     std::vector<std::byte> buffer = LoadFile(path);
-    BinaryReader reader(buffer);
+
+    if (buffer.size() < HEADER_SIZE + CRC_SIZE)
+        throw std::runtime_error("Invalid archive format: file too small.");
+
+    const size_t contentSize = buffer.size() - CRC_SIZE;
+    const std::span<const std::byte> contentSpan(buffer.data(), contentSize);
+    const std::span<const std::byte> crcSpan(buffer.data() + contentSize, CRC_SIZE);
+
+    BinaryReader crcReader(crcSpan);
+    const uint32_t expectedCrc = crcReader.ReadInt<uint32_t>();
+    if (CRC32::Compute(contentSpan) != expectedCrc)
+        throw std::runtime_error("Invalid archive format: CRC-32 checksum mismatch.");
+
+    BinaryReader reader(contentSpan);
 
     std::string magic;
     for (size_t i = 0; i < MAGIC.size(); ++i)
@@ -34,20 +48,16 @@ void ArchiveReader::Load(const std::string &path)
     if (magic != MAGIC)
         throw std::runtime_error("Invalid archive format: magic string mismatch.");
 
-    uint32_t version;
-    version = reader.ReadInt<uint32_t>();
-
+    uint32_t version = reader.ReadInt<uint32_t>();
     if (version != VERSION)
         throw std::runtime_error("Invalid archive format: version mismatch.");
 
-    uint32_t AssetCount;
-    AssetCount = reader.ReadInt<uint32_t>();
+    uint32_t AssetCount = reader.ReadInt<uint32_t>();
+    uint64_t RegistryOffset = reader.ReadInt<uint64_t>();
 
-    uint64_t RegistryOffset;
-    RegistryOffset = reader.ReadInt<uint64_t>();
-    if (!(RegistryOffset >= HEADER_SIZE && RegistryOffset <= buffer.size()))
+    if (!(RegistryOffset >= HEADER_SIZE && RegistryOffset <= contentSize))
         throw std::runtime_error("Invalid archive format: registry offset out of bounds.");
-    if ((buffer.size() - RegistryOffset) / ENTRY_SIZE < AssetCount)
+    if ((contentSize - RegistryOffset) / ENTRY_SIZE < AssetCount)
         throw std::runtime_error("Invalid archive format: not enough data for asset registry.");
 
     BinaryReader registryReader(std::span<const std::byte>(buffer.data() + RegistryOffset, AssetCount * ENTRY_SIZE));
@@ -61,15 +71,12 @@ void ArchiveReader::Load(const std::string &path)
         entry.offset = registryReader.ReadInt<uint64_t>();
         entry.size = registryReader.ReadInt<uint64_t>();
 
-
-        if (entry.offset > buffer.size())
+        if (entry.offset > contentSize)
             throw std::runtime_error("Invalid archive format: asset offset out of bounds.");
-
         if (entry.offset < HEADER_SIZE)
             throw std::runtime_error("Invalid archive format: asset offset overlaps with header or registry.");
-        if (entry.size > buffer.size() - entry.offset)
+        if (entry.size > contentSize - entry.offset)
             throw std::runtime_error("Invalid archive format: asset data out of bounds.");
-
         if (assets.contains(entry.id))
             throw std::runtime_error("Invalid archive format: duplicate asset ID found.");
 
@@ -78,5 +85,4 @@ void ArchiveReader::Load(const std::string &path)
 
     m_assets = std::move(assets);
     m_buffer = std::move(buffer);
-
 }
