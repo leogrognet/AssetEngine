@@ -14,8 +14,6 @@ public:
 
     [[nodiscard]] bool HasAsset(uint32_t id) const;
 
-    void ReadAsset(const std::string& path);
-
     [[nodiscard]] std::span<const std::byte> GetAssetData(uint32_t id) const;
 
 private:

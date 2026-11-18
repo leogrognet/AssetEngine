@@ -5,6 +5,7 @@
 #include "ArchiveFormat.h"
 #include "BinaryWriter.h"
 #include "FileIO.h"
+#include "CRC32.h"
 
 
 bool ArchiveWriter::HasAsset(uint32_t id) const
@@ -66,6 +67,8 @@ std::vector<std::byte> ArchiveWriter::Build() const
         writer.WriteBytes(asset.data);
     }
 
+    const uint32_t crc = CRC32::Compute(writer.GetBuffer());
+    writer.WriteInt<uint32_t>(crc);
 
     return writer.TakeBuffer();
 }
