@@ -14,11 +14,11 @@ int main()
     w.WriteString("Test");
     w.WriteVector(std::vector<uint16_t>{10, 20});
 
-    for (std::byte b : w.getBuffer())
+    for (std::byte b : w.GetBuffer())
         std::cout << std::hex << static_cast<int>(b) << ' ';
     std::cout << '\n';
 
-    BinaryReader r(w.getBuffer());
+    BinaryReader r(w.GetBuffer());
     assert(r.ReadInt<uint32_t>() == 0x01020304);
     assert(r.ReadInt<int32_t>() == -5);
     assert(r.ReadBool() == true);

@@ -11,7 +11,7 @@
 class BinaryReader
 {
 public:
-
+    BinaryReader() = default;
     explicit BinaryReader(std::span<const std::byte> data) : m_buffer(data) {}
 
 

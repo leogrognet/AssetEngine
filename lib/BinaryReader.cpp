@@ -1,4 +1,4 @@
-﻿#include "../BinaryReader.h"
+﻿#include "BinaryReader.h"
 #include <bit>
 
 

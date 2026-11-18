@@ -1,4 +1,4 @@
-﻿#include "../BinaryWriter.h"
+﻿#include "BinaryWriter.h"
 #include <bit>
 #include <stdexcept>
 

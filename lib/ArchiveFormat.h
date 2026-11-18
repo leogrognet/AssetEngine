@@ -5,9 +5,10 @@
 
 
 inline constexpr std::string_view MAGIC = "ASET";
-inline constexpr uint16_t VERSION = 1;
+inline constexpr uint32_t VERSION = 1;
 
-inline constexpr uint64_t HEADER_SIZE = MAGIC.size() + sizeof(uint16_t) + sizeof(uint32_t);
+inline constexpr uint64_t HEADER_SIZE = MAGIC.size()/*Size of the magic string*/ + sizeof(uint32_t)/*Version*/ + sizeof(uint32_t)/*Number of assets*/ + sizeof(uint64_t)/*Position of the Asset Registry*/;
+static_assert(HEADER_SIZE == 20, "Header size changed: update the format version.");
 
 inline constexpr uint64_t CRC_SIZE = sizeof(uint32_t);
 
