@@ -8,7 +8,7 @@
 
 TEST(ArchiveTest, MultiAssetRoundTrip)
 {
-    TempFile file("test_roundtrip.aset");
+    TempFile file("test_roundtrip.bin");
 
     BinaryWriter payload1;
     payload1.WriteString("MeshCube");
@@ -39,9 +39,9 @@ TEST(ArchiveTest, MultiAssetRoundTrip)
 
 TEST(ArchiveTest, RejectsAlteredByteAndTruncatedFile)
 {
-    TempFile validFile("test_valid.aset");
-    TempFile corruptedFile("test_corrupted.aset");
-    TempFile truncatedFile("test_truncated.aset");
+    TempFile validFile("test_valid.bin");
+    TempFile corruptedFile("test_corrupted.bin");
+    TempFile truncatedFile("test_truncated.bin");
 
     BinaryWriter payload;
     payload.WriteString("PayloadData");
@@ -66,8 +66,8 @@ TEST(ArchiveTest, RejectsAlteredByteAndTruncatedFile)
 
 TEST(ArchiveTest, AtomicLoadPreservesPreviousStateOnFailure)
 {
-    TempFile goodFile("test_atomic_good.aset");
-    TempFile badFile("test_atomic_bad.aset");
+    TempFile goodFile("test_atomic_good.bin");
+    TempFile badFile("test_atomic_bad.bin");
 
     BinaryWriter payload;
     payload.WriteInt<uint32_t>(1234);
