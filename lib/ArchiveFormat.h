@@ -21,6 +21,17 @@ struct ArchiveEntry
     uint64_t size;
 };
 
+enum class AssetType : uint32_t
+{
+    Unknown = 0,
+    Mesh = 1,
+    Texture = 2,
+    RigidBody = 3,
+    Collider = 4,
+    PhysicsMaterial = 5,
+    Scene = 6
+};
+
 inline constexpr uint64_t ENTRY_SIZE =
     sizeof(ArchiveEntry::id) + sizeof(ArchiveEntry::type) +
     sizeof(ArchiveEntry::offset) + sizeof(ArchiveEntry::size);

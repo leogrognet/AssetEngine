@@ -86,3 +86,23 @@ void ArchiveReader::Load(const std::string& path)
     m_assets = std::move(assets);
     m_buffer = std::move(buffer);
 }
+
+AssetType ArchiveReader::GetAssetType(uint32_t id) const
+{
+    if (!HasAsset(id))
+        throw std::invalid_argument("Asset ID not found");
+
+    return static_cast<AssetType>(m_assets.at(id).type);
+}
+
+std::vector<uint32_t> ArchiveReader::GetAssetsByType(AssetType type) const
+{
+    std::vector<uint32_t> result;
+    const auto rawType = static_cast<uint32_t>(type);
+    for (const auto& [id, entry] : m_assets)
+    {
+        if (entry.type == rawType)
+            result.push_back(id);
+    }
+    return result;
+}

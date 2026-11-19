@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <vector>
+#include <limits>
 
 class BinaryWriter
 {
@@ -48,12 +49,21 @@ public:
     }
   }
 
+  void WriteValue(bool value) { WriteBool(value); }
+
   template <std::integral T>
   void WriteValue(T value) { WriteInt(value); }
 
-  void WriteValue(float value)             { WriteFloat(value); }
-  void WriteValue(double value)            { WriteDouble(value); }
-  void WriteValue(std::string_view string)  { WriteString(string); }
+  void WriteValue(float value) { WriteFloat(value); }
+  void WriteValue(double value) { WriteDouble(value); }
+  void WriteValue(std::string_view string) { WriteString(string); }
+
+  template <typename T>
+      requires requires(BinaryWriter& w, const T& v) { Serialize(w, v); }
+  void WriteValue(const T& value)
+  {
+      Serialize(*this, value);
+  }
 
   void WriteBytes(std::span<const std::byte> bytes);
 

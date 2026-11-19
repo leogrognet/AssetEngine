@@ -5,6 +5,17 @@
 #include "BinaryWriter.h"
 #include "BinaryReader.h"
 #include "FileIO.h"
+#include "CRC32.h"
+
+namespace
+{
+    std::vector<std::byte> FinalizeWithValidCRC(BinaryWriter& writer)
+    {
+        const uint32_t crc = CRC32::Compute(writer.GetBuffer());
+        writer.WriteInt<uint32_t>(crc);
+        return writer.TakeBuffer();
+    }
+}
 
 TEST(ArchiveTest, MultiAssetRoundTrip)
 {
@@ -84,4 +95,157 @@ TEST(ArchiveTest, AtomicLoadPreservesPreviousStateOnFailure)
 
     EXPECT_THROW(reader.Load(badFile.Str()), std::runtime_error);
     EXPECT_TRUE(reader.HasAsset(1));
+}
+
+TEST(ArchiveTest, RejectsDuplicateIdEvenWithDifferentAssetType)
+{
+    ArchiveWriter writer;
+    writer.AddAsset(1, AssetType::Mesh, std::vector<std::byte>{ std::byte{ 0x01 } });
+
+    EXPECT_THROW(
+        writer.AddAsset(1, AssetType::RigidBody, std::vector<std::byte>{ std::byte{ 0x02 } }),
+        std::invalid_argument
+    );
+}
+
+TEST(ArchiveTest, ReplaceAssetUpdatesAssetTypeAndQueries)
+{
+    TempFile file("test_replace_type.aset");
+
+    ArchiveWriter writer;
+    writer.AddAsset(10, AssetType::Mesh, std::vector<std::byte>{ std::byte{ 0xAA } });
+    writer.ReplaceAsset(10, AssetType::Collider, std::vector<std::byte>{ std::byte{ 0xBB }, std::byte{ 0xCC } });
+    writer.Save(file.Str());
+
+    ArchiveReader reader;
+    reader.Load(file.Str());
+
+    EXPECT_EQ(reader.GetAssetType(10), AssetType::Collider);
+    EXPECT_TRUE(reader.GetAssetsByType(AssetType::Mesh).empty());
+    EXPECT_EQ(reader.GetAssetsByType(AssetType::Collider), (std::vector<uint32_t>{ 10u }));
+}
+
+TEST(ArchiveTest, PreservesUnknownRawAssetTypes)
+{
+    TempFile file("test_custom_raw_type.aset");
+    constexpr uint32_t customEngineType = 999u;
+
+    ArchiveWriter writer;
+    writer.AddAsset(5, customEngineType, std::vector<std::byte>{ std::byte{ 0x42 } });
+    writer.Save(file.Str());
+
+    ArchiveReader reader;
+    reader.Load(file.Str());
+
+    const auto unknownEnum = static_cast<AssetType>(customEngineType);
+    EXPECT_EQ(reader.GetAssetType(5), unknownEnum);
+    EXPECT_EQ(reader.GetAssetsByType(unknownEnum), (std::vector<uint32_t>{ 5u }));
+}
+
+TEST(ArchiveTest, ThrowsWhenQueryingUnloadedReader)
+{
+    ArchiveReader emptyReader;
+    EXPECT_THROW((void)emptyReader.GetAssetType(1), std::invalid_argument);
+    EXPECT_TRUE(emptyReader.GetAssetsByType(AssetType::RigidBody).empty());
+}
+
+TEST(ArchiveTest, QueriesAssetTypesAndFiltersByType)
+{
+    TempFile file("test_asset_types.aset");
+
+    BinaryWriter dummy;
+    dummy.WriteInt<uint32_t>(42);
+
+    ArchiveWriter writer;
+    writer.AddAsset(1, AssetType::Mesh, dummy.GetBuffer());
+    writer.AddAsset(2, AssetType::RigidBody, dummy.GetBuffer());
+    writer.AddAsset(3, AssetType::RigidBody, dummy.GetBuffer());
+    writer.Save(file.Str());
+
+    ArchiveReader reader;
+    reader.Load(file.Str());
+
+    EXPECT_EQ(reader.GetAssetType(1), AssetType::Mesh);
+    EXPECT_EQ(reader.GetAssetType(2), AssetType::RigidBody);
+
+    const auto bodies = reader.GetAssetsByType(AssetType::RigidBody);
+    ASSERT_EQ(bodies.size(), 2u);
+    EXPECT_NE(std::find(bodies.begin(), bodies.end(), 2u), bodies.end());
+    EXPECT_NE(std::find(bodies.begin(), bodies.end(), 3u), bodies.end());
+    EXPECT_TRUE(reader.GetAssetsByType(AssetType::Texture).empty());
+}
+
+TEST(ArchiveTest, WriterRemoveAndReplaceValidation)
+{
+    ArchiveWriter writer;
+    writer.AddAsset(1, AssetType::Mesh, std::vector<std::byte>{ std::byte{ 0x01 } });
+
+    EXPECT_THROW(
+        writer.ReplaceAsset(99, AssetType::Mesh, std::vector<std::byte>{ std::byte{ 0x02 } }),
+        std::invalid_argument
+    );
+
+    EXPECT_TRUE(writer.RemoveAsset(1));
+    EXPECT_FALSE(writer.RemoveAsset(1));
+    EXPECT_FALSE(writer.HasAsset(1));
+}
+
+TEST(ArchiveTest, EmptyArchiveAndMissingFile)
+{
+    TempFile emptyArchiveFile("test_empty_archive.aset");
+
+    ArchiveWriter writer;
+    writer.Save(emptyArchiveFile.Str());
+
+    ArchiveReader reader;
+    EXPECT_NO_THROW(reader.Load(emptyArchiveFile.Str()));
+    EXPECT_FALSE(reader.HasAsset(1));
+    EXPECT_THROW(reader.Load("non_existent_archive_12345.aset"), std::runtime_error);
+}
+
+TEST(ArchiveTest, RejectsInvalidHeaderAndRegistryWithValidCRC)
+{
+    TempFile forgedFile("test_forged_header.aset");
+    ArchiveReader reader;
+
+    {
+        BinaryWriter w;
+        for (char c : std::string_view("NOPE"))
+            w.WriteInt<uint8_t>(static_cast<uint8_t>(c));
+        w.WriteInt<uint32_t>(VERSION);
+        w.WriteInt<uint32_t>(0);
+        w.WriteInt<uint64_t>(HEADER_SIZE);
+
+        SaveFile(forgedFile.Str(), FinalizeWithValidCRC(w));
+        EXPECT_THROW(reader.Load(forgedFile.Str()), std::runtime_error);
+    }
+
+    {
+        BinaryWriter w;
+        for (char c : MAGIC)
+            w.WriteInt<uint8_t>(static_cast<uint8_t>(c));
+        w.WriteInt<uint32_t>(VERSION + 1);
+        w.WriteInt<uint32_t>(0);
+        w.WriteInt<uint64_t>(HEADER_SIZE);
+
+        SaveFile(forgedFile.Str(), FinalizeWithValidCRC(w));
+        EXPECT_THROW(reader.Load(forgedFile.Str()), std::runtime_error);
+    }
+
+    {
+        BinaryWriter w;
+        for (char c : MAGIC)
+            w.WriteInt<uint8_t>(static_cast<uint8_t>(c));
+        w.WriteInt<uint32_t>(VERSION);
+        w.WriteInt<uint32_t>(1);
+        w.WriteInt<uint64_t>(HEADER_SIZE);
+
+        w.WriteInt<uint32_t>(1);
+        w.WriteInt<uint32_t>(static_cast<uint32_t>(AssetType::Mesh));
+        w.WriteInt<uint64_t>(4);
+        w.WriteInt<uint64_t>(4);
+
+        SaveFile(forgedFile.Str(), FinalizeWithValidCRC(w));
+        EXPECT_THROW(reader.Load(forgedFile.Str()), std::runtime_error);
+    }
 }
