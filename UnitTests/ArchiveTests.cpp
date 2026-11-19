@@ -6,6 +6,8 @@
 #include "BinaryReader.h"
 #include "FileIO.h"
 #include "CRC32.h"
+#include "PlayerAdapter.h"
+
 
 namespace
 {
@@ -16,6 +18,7 @@ namespace
         return writer.TakeBuffer();
     }
 }
+
 
 TEST(ArchiveTest, MultiAssetRoundTrip)
 {
@@ -248,4 +251,23 @@ TEST(ArchiveTest, RejectsInvalidHeaderAndRegistryWithValidCRC)
         SaveFile(forgedFile.Str(), FinalizeWithValidCRC(w));
         EXPECT_THROW(reader.Load(forgedFile.Str()), std::runtime_error);
     }
+}
+
+TEST(ArchiveTest, AcceptLatestVersion)
+{
+    TempFile file("test_version.bin");
+    Player player;
+    player.health = 100;
+    player.mana = 50;
+    player.level = 5;
+
+    std::vector<std::byte> playerBuffer = WritePlayerV1(player);
+
+
+    ArchiveWriter writer;
+    writer.AddAsset(1, 1, payload.GetBuffer());
+    writer.Save(file.Str());
+
+    ArchiveReader reader;
+    EXPECT_NO_THROW(reader.Load(file.Str()));
 }

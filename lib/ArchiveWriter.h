@@ -30,7 +30,7 @@ public:
     void ReplaceAsset(uint32_t id, uint32_t type, std::span<const std::byte> data);
     void ReplaceAsset(uint32_t id, AssetType type, std::span<const std::byte> data);
 
-    [[nodiscard]] std::vector<std::byte> Build() const;
+    [[nodiscard]] std::vector<std::byte> Build(uint32_t version = VERSION) const;
 
     void Save(const std::string& path) const;
 

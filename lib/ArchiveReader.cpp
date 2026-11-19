@@ -21,6 +21,7 @@ std::span<const std::byte> ArchiveReader::GetAssetData(uint32_t id) const
 }
 
 
+
 void ArchiveReader::Load(const std::string& path)
 {
     std::vector<std::byte> buffer = LoadFile(path);
@@ -49,6 +50,7 @@ void ArchiveReader::Load(const std::string& path)
         throw std::runtime_error("Invalid archive format: magic string mismatch.");
 
     uint32_t version = reader.ReadInt<uint32_t>();
+    m_version = version;
     if (version != VERSION)
         throw std::runtime_error("Invalid archive format: version mismatch.");
 

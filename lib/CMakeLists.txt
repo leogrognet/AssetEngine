@@ -11,7 +11,9 @@
         ArchiveReader.cpp
         ArchiveReader.h
         CRC32.h
-        CRC32.cpp)
+        CRC32.cpp
+        PlayerAdapter.cpp
+        PlayerAdapter.h)
 
 target_include_directories(AssetEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(AssetEngine PUBLIC cxx_std_20)
