@@ -255,19 +255,52 @@ TEST(ArchiveTest, RejectsInvalidHeaderAndRegistryWithValidCRC)
 
 TEST(ArchiveTest, AcceptLatestVersion)
 {
+
     TempFile file("test_version.bin");
     Player player;
     player.health = 100;
     player.mana = 50;
     player.level = 5;
 
-    std::vector<std::byte> playerBuffer = WritePlayerV1(player);
+    std::vector<std::byte> playerBuffer = WritePlayerV2(player);
 
 
     ArchiveWriter writer;
-    writer.AddAsset(1, 1, payload.GetBuffer());
+    writer.AddAsset(1, 1, playerBuffer);
     writer.Save(file.Str());
 
+
+
     ArchiveReader reader;
-    EXPECT_NO_THROW(reader.Load(file.Str()));
+    reader.Load(file.Str());
+    BinaryReader playerReader(reader.GetAssetData(1));
+    Player loadedPlayer = ReadPlayer(playerReader, reader.GetVersion());
+    EXPECT_EQ(reader.GetVersion(), VERSION);
+    EXPECT_FLOAT_EQ(loadedPlayer.health, 100.0f);
+    EXPECT_FLOAT_EQ(loadedPlayer.mana, 50.0f);
+    EXPECT_FLOAT_EQ(loadedPlayer.level, 5.0f);
+}
+
+TEST(ArchiveTest, AcceptOlderVersion)
+{
+    TempFile file("test_version_old.bin");
+    Player player;
+    player.health = 80;
+    player.mana = 30;
+    player.level = 3;
+
+    std::vector<std::byte> playerBuffer = WritePlayerV1(player);
+
+    ArchiveWriter writer;
+    writer.AddAsset(1, 1, playerBuffer);
+    writer.Save(file.Str(), 1);
+
+    ArchiveReader reader;
+    reader.Load(file.Str());
+    BinaryReader playerReader(reader.GetAssetData(1));
+    Player loadedPlayer = ReadPlayer(playerReader, reader.GetVersion());
+    EXPECT_EQ(reader.GetVersion(), 1);
+    EXPECT_FLOAT_EQ(loadedPlayer.health, 80.0f);
+    EXPECT_FLOAT_EQ(loadedPlayer.mana, 30.0f);
+    EXPECT_FLOAT_EQ(loadedPlayer.level, 1.0f);
 }

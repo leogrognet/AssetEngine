@@ -15,7 +15,7 @@ std::span<const std::byte> ArchiveReader::GetAssetData(uint32_t id) const
     if (!HasAsset(id))
         throw std::invalid_argument("Asset ID not found");
 
-   std::span<const std::byte> allData(m_buffer );
+    std::span<const std::byte> allData(m_buffer );
 
     return allData.subspan(m_assets.at(id).offset, m_assets.at(id).size);
 }
@@ -51,8 +51,8 @@ void ArchiveReader::Load(const std::string& path)
 
     uint32_t version = reader.ReadInt<uint32_t>();
     m_version = version;
-    if (version != VERSION)
-        throw std::runtime_error("Invalid archive format: version mismatch.");
+    if (version < MIN_SUPPORTED_VERSION || version > VERSION)
+        throw std::runtime_error("Unsupported archive version.");
 
     uint32_t AssetCount = reader.ReadInt<uint32_t>();
     uint64_t RegistryOffset = reader.ReadInt<uint64_t>();

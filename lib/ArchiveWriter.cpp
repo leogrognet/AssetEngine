@@ -87,7 +87,7 @@ std::vector<std::byte> ArchiveWriter::Build(uint32_t version) const
     return writer.TakeBuffer();
 }
 
-void ArchiveWriter::Save(const std::string &path) const
+void ArchiveWriter::Save(const std::string &path, uint32_t version) const
 {
-    SaveFile(path, Build());
+    SaveFile(path, Build(version));
 }

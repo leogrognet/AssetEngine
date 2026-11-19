@@ -7,9 +7,9 @@
 
 struct Player
 {
-    int health;
-    int mana;
-    int level;
+    int32_t health;
+    int32_t mana;
+    int32_t level;
 };
 
 

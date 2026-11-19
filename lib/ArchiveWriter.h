@@ -32,7 +32,7 @@ public:
 
     [[nodiscard]] std::vector<std::byte> Build(uint32_t version = VERSION) const;
 
-    void Save(const std::string& path) const;
+    void Save(const std::string &path, uint32_t version = VERSION) const;
 
 private:
     std::map<uint32_t, Asset> assets;
