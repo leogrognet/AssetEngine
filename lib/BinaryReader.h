@@ -70,6 +70,15 @@ public:
     template <std::same_as<std::string> T>
     T ReadValue() { return ReadString(); }
 
+    template <typename T>
+        requires requires(BinaryReader& r, T& out) { Deserialize(r, out); }
+    T ReadValue()
+    {
+        T value{};
+        Deserialize(*this, value);
+        return value;
+    }
+
 
     [[nodiscard]] std::span<const std::byte> getBuffer() const { return m_buffer; }
 

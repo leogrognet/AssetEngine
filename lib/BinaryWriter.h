@@ -55,6 +55,13 @@ public:
   void WriteValue(double value)            { WriteDouble(value); }
   void WriteValue(std::string_view string)  { WriteString(string); }
 
+  template <typename T>
+      requires requires(BinaryWriter& w, const T& v) { Serialize(w, v); }
+  void WriteValue(const T& value)
+  {
+      Serialize(*this, value);
+  }
+
   void WriteBytes(std::span<const std::byte> bytes);
 
   [[nodiscard]] std::vector<std::byte> Build() const { return m_buffer; }
