@@ -7,6 +7,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <type_traits>
 
 class BinaryReader
 {
@@ -47,7 +48,7 @@ public:
     std::vector<T> ReadVector()
     {
         auto length = ReadInt<uint32_t>();
-        if (length * sizeof(T) > m_buffer.size() - pos)
+        if (length > m_buffer.size() - pos)
             throw std::runtime_error("Not enough data to read a vector.");
 
         std::vector<T> vec(length);
@@ -59,7 +60,13 @@ public:
     }
 
     template <std::integral T>
-    T ReadValue() { return ReadInt<T>(); }
+    T ReadValue()
+    {
+        if constexpr (std::same_as<std::remove_cv_t<T>, bool>)
+            return ReadBool();
+        else
+            return ReadInt<T>();
+    }
 
     template <std::same_as<float> T>
     T ReadValue() { return ReadFloat(); }

@@ -26,7 +26,15 @@ void ArchiveWriter::AddAsset(uint32_t id, uint32_t type, std::span<const std::by
     AddAsset(id, type, std::vector<std::byte>(data.begin(), data.end()));
 }
 
+void ArchiveWriter::AddAsset(uint32_t id, AssetType type, std::vector<std::byte> data)
+{
+    AddAsset(id, static_cast<uint32_t>(type), std::move(data));
+}
 
+void ArchiveWriter::AddAsset(uint32_t id, AssetType type, std::span<const std::byte> data)
+{
+    AddAsset(id, static_cast<uint32_t>(type), data);
+}
 
 bool ArchiveWriter::RemoveAsset(uint32_t id)
 {
@@ -39,6 +47,11 @@ void ArchiveWriter::ReplaceAsset(uint32_t id, uint32_t type, std::span<const std
         throw std::invalid_argument("Asset ID not found");
 
     assets[id] = {id, type, std::vector<std::byte>(data.begin(), data.end())};
+}
+
+void ArchiveWriter::ReplaceAsset(uint32_t id, AssetType type, std::span<const std::byte> data)
+{
+    ReplaceAsset(id, static_cast<uint32_t>(type), data);
 }
 
 std::vector<std::byte> ArchiveWriter::Build() const
